@@ -1,0 +1,11 @@
+{
+  "id": "vault-assistant",
+  "name": "Vault Assistant",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Query your knowledge base with semantic search directly from Obsidian. Powered by vault-assistant RAG backend.",
+  "author": "Alex Kibler",
+  "authorUrl": "https://github.com/alexkibler",
+  "fundingUrl": "https://github.com/alexkibler/vault-assistant",
+  "isDesktopOnly": false
+}
