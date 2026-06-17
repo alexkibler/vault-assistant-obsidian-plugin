@@ -103,46 +103,106 @@
 
 .vault-assistant-results-modal {
   --vault-assistant-primary: var(--accent-color, #007aff);
+  max-width: 90%;
 }
 
 .vault-assistant-results-header {
-  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vault-assistant-results-header h2 {
+  margin: 0;
   color: var(--text-normal);
 }
 
-.vault-assistant-mode-badge {
-  display: inline-block;
+.vault-assistant-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
   padding: 4px 8px;
-  background-color: var(--background-modifier-border);
-  border-radius: 3px;
-  font-size: 12px;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  transition: color 0.2s ease;
 }
 
-.vault-assistant-answer-container {
-  margin-bottom: 24px;
+.vault-assistant-close-btn:hover {
+  color: var(--text-normal);
+}
+
+.vault-assistant-query-section {
+  margin-bottom: 20px;
   padding: 12px;
   background-color: var(--background-secondary);
-  border-left: 3px solid var(--vault-assistant-primary);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
-.vault-assistant-section-label {
+.vault-assistant-query-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.vault-assistant-query-section p {
+  margin: 0;
+  font-style: italic;
+  color: var(--text-normal);
+  line-height: 1.4;
+}
+
+.vault-assistant-metadata {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.vault-assistant-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: var(--vault-assistant-primary);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vault-assistant-answer-section {
+  margin-bottom: 24px;
+}
+
+.vault-assistant-answer-section h3 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: var(--text-normal);
   font-size: 15px;
 }
 
 .vault-assistant-answer-text {
   margin: 0;
-  line-height: 1.5;
+  padding: 12px;
+  line-height: 1.6;
   color: var(--text-normal);
+  background-color: var(--background-secondary);
+  border-left: 3px solid var(--vault-assistant-primary);
+  border-radius: 3px;
 }
 
-.vault-assistant-sources-container {
+.vault-assistant-sources-section {
   margin-bottom: 20px;
+}
+
+.vault-assistant-sources-section h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: var(--text-normal);
+  font-size: 15px;
 }
 
 .vault-assistant-sources-list {
@@ -151,13 +211,12 @@
   padding: 0;
 }
 
-.vault-assistant-source-item {
+.vault-assistant-sources-list li {
   padding: 8px 0;
-  border-bottom: 1px solid
-    var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.vault-assistant-source-item:last-child {
+.vault-assistant-sources-list li:last-child {
   border-bottom: none;
 }
 
@@ -166,17 +225,10 @@
   text-decoration: none;
   cursor: pointer;
   font-weight: 500;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .vault-assistant-source-link:hover {
   opacity: 0.8;
   text-decoration: underline;
-}
-
-.vault-assistant-stats {
-  display: block;
-  margin-top: 10px;
-  color: var(--text-muted);
-  font-size: 12px;
 }

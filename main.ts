@@ -13,7 +13,7 @@ interface VaultAssistantSettings {
 }
 
 const DEFAULT_SETTINGS: VaultAssistantSettings = {
-  baseUrl: "http://localhost:8765",
+  baseUrl: "http://192.168.1.32:8765",
   apiMode: "vault",
 };
 
@@ -28,6 +28,7 @@ class VaultAssistantQueryModal extends Modal {
   input: string = "";
   mode: string = "vault";
   baseUrl: string;
+  onSubmit: (query: string, mode: string) => void;
 
   constructor(
     app: App,
@@ -39,31 +40,22 @@ class VaultAssistantQueryModal extends Modal {
     this.onSubmit = onSubmit;
   }
 
-  onSubmit: (query: string, mode: string) => void;
-
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("vault-assistant-modal");
-
     contentEl.createEl("h2", { text: "Query Your Vault" });
 
     // Query input
     const inputContainer = contentEl.createDiv();
-    inputContainer.addClass("vault-assistant-input-container");
-
     const label = inputContainer.createEl("label", {
       text: "Enter your question:",
     });
-    label.addClass("vault-assistant-label");
 
     const input = inputContainer.createEl("textarea", {
       attr: {
-        placeholder:
-          "What would you like to know about your notes?",
+        placeholder: "What would you like to know about your notes?",
         rows: "4",
       },
     });
-    input.addClass("vault-assistant-input");
     this.input = "";
 
     input.addEventListener("input", (e) => {
@@ -72,13 +64,9 @@ class VaultAssistantQueryModal extends Modal {
 
     // Mode selection
     const modeContainer = contentEl.createDiv();
-    modeContainer.addClass("vault-assistant-mode-container");
-
     const modeLabel = modeContainer.createEl("label", { text: "Query Mode:" });
-    modeLabel.addClass("vault-assistant-label");
 
     const modeSelect = modeContainer.createEl("select");
-    modeSelect.addClass("vault-assistant-select");
 
     const modes = [
       { value: "vault", label: "Vault (RAG - your notes)" },
@@ -98,10 +86,7 @@ class VaultAssistantQueryModal extends Modal {
 
     // Submit button
     const buttonContainer = contentEl.createDiv();
-    buttonContainer.addClass("vault-assistant-button-container");
-
     const submitBtn = buttonContainer.createEl("button", { text: "Query" });
-    submitBtn.addClass("vault-assistant-button");
 
     submitBtn.addEventListener("click", () => {
       if (this.input.trim()) {
@@ -113,7 +98,6 @@ class VaultAssistantQueryModal extends Modal {
     });
 
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
-    cancelBtn.addClass("vault-assistant-button-secondary");
     cancelBtn.addEventListener("click", () => this.close());
 
     // Focus input on open
@@ -128,9 +112,11 @@ class VaultAssistantQueryModal extends Modal {
 
 class VaultAssistantResultsModal extends Modal {
   response: QueryResponse;
+  query: string;
 
-  constructor(app: App, response: QueryResponse) {
+  constructor(app: App, query: string, response: QueryResponse) {
     super(app);
+    this.query = query;
     this.response = response;
   }
 
@@ -138,80 +124,49 @@ class VaultAssistantResultsModal extends Modal {
     const { contentEl } = this;
     contentEl.addClass("vault-assistant-results-modal");
 
-    // Header
-    const header = contentEl.createEl("h2", { text: "Query Result" });
-    header.addClass("vault-assistant-results-header");
+    // Header with close button
+    const headerDiv = contentEl.createDiv("vault-assistant-results-header");
+    headerDiv.createEl("h2", { text: "Query Result" });
+    const closeBtn = headerDiv.createEl("button", { text: "✕" });
+    closeBtn.addClass("vault-assistant-close-btn");
+    closeBtn.addEventListener("click", () => this.close());
 
-    // Mode badge
-    const modeBadge = contentEl.createEl("span", {
-      text: `Mode: ${this.response.mode}`,
-    });
-    modeBadge.addClass("vault-assistant-mode-badge");
+    // Your query section
+    const querySection = contentEl.createDiv("vault-assistant-query-section");
+    querySection.createEl("h3", { text: "Your Query" });
+    querySection.createEl("p", { text: this.query });
 
-    // Answer
-    const answerContainer = contentEl.createDiv();
-    answerContainer.addClass("vault-assistant-answer-container");
+    // Mode and context badges
+    const metadata = contentEl.createDiv("vault-assistant-metadata");
+    const modeBadge = metadata.createEl("span", { cls: "vault-assistant-badge" });
+    modeBadge.setText(`Mode: ${this.response.mode}`);
+    const contextBadge = metadata.createEl("span", { cls: "vault-assistant-badge" });
+    contextBadge.setText(`Context: ${this.response.context_used} chunks`);
 
-    const answerLabel = answerContainer.createEl("h3", { text: "Answer" });
-    answerLabel.addClass("vault-assistant-section-label");
-
-    const answerEl = answerContainer.createEl("p", {
+    // Answer section
+    const answerContainer = contentEl.createDiv("vault-assistant-answer-section");
+    answerContainer.createEl("h3", { text: "Answer" });
+    answerContainer.createEl("p", {
       text: this.response.answer,
+      cls: "vault-assistant-answer-text",
     });
-    answerEl.addClass("vault-assistant-answer-text");
 
-    // Sources
+    // Sources section
     if (this.response.sources.length > 0) {
-      const sourcesContainer = contentEl.createDiv();
-      sourcesContainer.addClass("vault-assistant-sources-container");
-
-      const sourcesLabel = sourcesContainer.createEl("h3", {
+      const sourcesContainer = contentEl.createDiv("vault-assistant-sources-section");
+      sourcesContainer.createEl("h3", {
         text: `Sources (${this.response.sources.length})`,
       });
-      sourcesLabel.addClass("vault-assistant-section-label");
 
-      const sourcesList = sourcesContainer.createEl("ul");
-      sourcesList.addClass("vault-assistant-sources-list");
-
+      const sourcesList = sourcesContainer.createEl("ul", { cls: "vault-assistant-sources-list" });
       this.response.sources.forEach((source) => {
         const item = sourcesList.createEl("li");
-        item.addClass("vault-assistant-source-item");
-
-        // Extract note name from path
         const noteName = source.split("/").pop() || source;
         const link = item.createEl("a", { text: noteName });
         link.addClass("vault-assistant-source-link");
-
-        link.addEventListener("click", (e) => {
-          e.preventDefault();
-          // Open the note in Obsidian
-          const file = this.app.metadataCache.getFirstLinkpathDest(
-            source.replace(".md", ""),
-            ""
-          );
-          if (file) {
-            this.app.workspace.getLeaf().openFile(file);
-            this.close();
-          } else {
-            new Notice(`Could not find file: ${source}`);
-          }
-        });
-
-        // Tooltip with full path
         link.title = source;
       });
-
-      // Context stats
-      const statsEl = sourcesContainer.createEl("small", {
-        text: `Retrieved ${this.response.context_used} context chunks`,
-      });
-      statsEl.addClass("vault-assistant-stats");
     }
-
-    // Close button
-    const closeBtn = contentEl.createEl("button", { text: "Close" });
-    closeBtn.addClass("vault-assistant-button");
-    closeBtn.addEventListener("click", () => this.close());
   }
 
   onClose() {
@@ -231,7 +186,7 @@ export default class VaultAssistantPlugin extends Plugin {
       this.openQueryDialog();
     });
 
-    // Add command to open query dialog
+    // Add command
     this.addCommand({
       id: "vault-assistant-query",
       name: "Query your vault",
@@ -280,7 +235,7 @@ export default class VaultAssistantPlugin extends Plugin {
       const data: QueryResponse = await response.json();
 
       // Show results in modal
-      const resultsModal = new VaultAssistantResultsModal(this.app, data);
+      const resultsModal = new VaultAssistantResultsModal(this.app, query, data);
       resultsModal.open();
     } catch (error) {
       console.error("Query error:", error);
@@ -309,9 +264,7 @@ class VaultAssistantSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
-
     containerEl.empty();
-
     containerEl.createEl("h2", { text: "Vault Assistant Settings" });
 
     new Setting(containerEl)
@@ -328,34 +281,5 @@ class VaultAssistantSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
-
-    containerEl.createEl("h3", { text: "Query Modes" });
-
-    const modesInfo = containerEl.createEl("p");
-    modesInfo.style.fontSize = "0.9em";
-    modesInfo.style.color = "var(--text-muted)";
-    modesInfo.createEl("strong", { text: "Vault: " });
-    modesInfo.appendText(
-      "Search your personal knowledge base with RAG. "
-    );
-    modesInfo.createEl("br");
-    modesInfo.createEl("strong", { text: "General: " });
-    modesInfo.appendText(
-      "Get general knowledge answers without vault context. "
-    );
-    modesInfo.createEl("br");
-    modesInfo.createEl("strong", { text: "Technical: " });
-    modesInfo.appendText(
-      "Query only technical documentation from your vault."
-    );
-
-    containerEl.createEl("h3", { text: "Keyboard Shortcut" });
-
-    const shortcutInfo = containerEl.createEl("p");
-    shortcutInfo.style.fontSize = "0.9em";
-    shortcutInfo.style.color = "var(--text-muted)";
-    shortcutInfo.appendText(
-      "You can set a custom keyboard shortcut in Obsidian Settings > Hotkeys > Vault Assistant > Query your vault"
-    );
   }
 }

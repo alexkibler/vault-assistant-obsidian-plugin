@@ -4,8 +4,8 @@
   "description": "Query vault-assistant RAG from Obsidian",
   "main": "main.js",
   "scripts": {
-    "dev": "esbuild main.ts --bundle --external:obsidian --external:@codemirror/autocomplete --outfile=main.js --sourcemap --watch",
-    "esbuild": "esbuild main.ts --bundle --external:obsidian --external:@codemirror/autocomplete --outfile=main.js",
+    "dev": "node esbuild.config.mjs",
+    "esbuild": "node esbuild.config.mjs production",
     "build": "tsc -noEmit && npm run esbuild"
   },
   "keywords": [],
