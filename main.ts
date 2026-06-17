@@ -22,6 +22,7 @@ interface QueryResponse {
   sources: string[];
   mode: string;
   context_used: number;
+  conversation_id?: string;
 }
 
 class VaultAssistantQueryModal extends Modal {
@@ -113,11 +114,21 @@ class VaultAssistantQueryModal extends Modal {
 class VaultAssistantResultsModal extends Modal {
   response: QueryResponse;
   query: string;
+  baseUrl: string;
+  onFollowup?: (followupQuery: string, conversationId: string) => void;
 
-  constructor(app: App, query: string, response: QueryResponse) {
+  constructor(
+    app: App,
+    query: string,
+    response: QueryResponse,
+    baseUrl: string,
+    onFollowup?: (followupQuery: string, conversationId: string) => void
+  ) {
     super(app);
     this.query = query;
     this.response = response;
+    this.baseUrl = baseUrl;
+    this.onFollowup = onFollowup;
   }
 
   onOpen() {
@@ -167,6 +178,32 @@ class VaultAssistantResultsModal extends Modal {
         link.title = source;
       });
     }
+
+    // Follow-up section (if conversation_id available)
+    if (this.response.conversation_id) {
+      const followupContainer = contentEl.createDiv("vault-assistant-followup-section");
+      followupContainer.createEl("h3", { text: "Follow-up Question" });
+
+      const followupInput = followupContainer.createEl("textarea", {
+        attr: {
+          placeholder: "Ask a follow-up question about the same topic...",
+          rows: "3",
+        },
+        cls: "vault-assistant-followup-input",
+      });
+
+      const followupBtn = followupContainer.createEl("button", { text: "Ask Follow-up" });
+      followupBtn.addClass("vault-assistant-followup-btn");
+      followupBtn.addEventListener("click", () => {
+        const followupText = followupInput.value.trim();
+        if (followupText && this.onFollowup) {
+          this.onFollowup(followupText, this.response.conversation_id!);
+          this.close();
+        } else if (!followupText) {
+          new Notice("Please enter a follow-up question");
+        }
+      });
+    }
   }
 
   onClose() {
@@ -177,6 +214,7 @@ class VaultAssistantResultsModal extends Modal {
 
 export default class VaultAssistantPlugin extends Plugin {
   settings: VaultAssistantSettings;
+  currentConversationId?: string;
 
   async onload() {
     await this.loadSettings();
@@ -210,20 +248,28 @@ export default class VaultAssistantPlugin extends Plugin {
     modal.open();
   }
 
-  async performQuery(query: string, mode: string) {
+  async performQuery(query: string, mode: string, conversationId?: string) {
     try {
       new Notice("Querying vault-assistant...");
+
+      const requestBody: any = {
+        text: query,
+        mode: mode,
+        top_k: 5,
+      };
+
+      // Add conversation context for follow-ups
+      if (conversationId) {
+        requestBody.conversation_id = conversationId;
+        requestBody.is_followup = true;
+      }
 
       const response = await fetch(`${this.settings.baseUrl}/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          text: query,
-          mode: mode,
-          top_k: 5,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -234,8 +280,21 @@ export default class VaultAssistantPlugin extends Plugin {
 
       const data: QueryResponse = await response.json();
 
-      // Show results in modal
-      const resultsModal = new VaultAssistantResultsModal(this.app, query, data);
+      // Store conversation ID for follow-ups
+      if (data.conversation_id) {
+        this.currentConversationId = data.conversation_id;
+      }
+
+      // Show results in modal with follow-up capability
+      const resultsModal = new VaultAssistantResultsModal(
+        this.app,
+        query,
+        data,
+        this.settings.baseUrl,
+        (followupQuery: string, conversationId: string) => {
+          this.performQuery(followupQuery, mode, conversationId);
+        }
+      );
       resultsModal.open();
     } catch (error) {
       console.error("Query error:", error);
